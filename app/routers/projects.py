@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.dependencies.auth import get_current_active_user
-from app.models.user import User
+from app.schemas.user import CurrentUser
 from app.schemas.project import (
     ProjectCreate,
     ProjectResponse,
@@ -29,7 +29,7 @@ def create_project(
     project_in: ProjectCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     project = ProjectService.create_project(db, project_in, current_user, background_tasks)
     return APIResponse(
@@ -41,7 +41,7 @@ def create_project(
 def get_projects(
     search: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     projects = ProjectService.get_user_projects(db, current_user, search)
     return APIResponse(message="Projects retrieved successfully", data=projects)
@@ -51,7 +51,7 @@ def get_projects(
 def get_project(
     project_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     project = ProjectService.get_project_details(db, project_id, current_user)
     return APIResponse(message="Project retrieved successfully", data=project)
@@ -63,7 +63,7 @@ def update_project(
     project_in: ProjectUpdate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     project = ProjectService.update_project(db, project_id, project_in, current_user, background_tasks)
     return APIResponse(message="Project updated successfully", data=project)
@@ -73,7 +73,7 @@ def update_project(
 def delete_project(
     project_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     ProjectService.delete_project(db, project_id, current_user)
     return APIResponse(message="Project deleted successfully")
@@ -85,7 +85,7 @@ def add_project_member(
     member_in: ProjectMemberCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     member = ProjectService.add_project_member(db, project_id, member_in, current_user, background_tasks)
     return APIResponse(
@@ -99,7 +99,7 @@ def remove_project_member(
     user_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     ProjectService.remove_project_member(db, project_id, user_id, current_user, background_tasks)
     return APIResponse(message="Member removed successfully")
@@ -109,7 +109,7 @@ def remove_project_member(
 def get_project_members(
     project_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     members = ProjectService.get_project_members(db, project_id, current_user)
     return APIResponse(message="Members retrieved successfully", data=members)
@@ -120,7 +120,7 @@ def create_task(
     project_id: int,
     task_in: TaskCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     task = TaskService.create_task(db, project_id, task_in, current_user)
     return APIResponse(message="Task created successfully", data=task)
@@ -138,7 +138,7 @@ def get_tasks(
     sort_by: str = Query("created_at", pattern="^(created_at|due_date)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     tasks_data = TaskService.get_project_tasks(
         db=db,
@@ -162,7 +162,7 @@ def get_activity_logs(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     # Verify user has access to project
     ProjectService.get_project_details(db, project_id, current_user)

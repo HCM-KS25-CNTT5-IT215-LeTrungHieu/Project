@@ -12,6 +12,7 @@ from app.models.project import Project, ProjectMember
 from app.models.task import Task, TaskPriorityEnum, TaskStatusEnum
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate
+from app.schemas.user import CurrentUser
 
 
 class TaskService:
@@ -38,7 +39,7 @@ class TaskService:
 
     @staticmethod
     def create_task(
-        db: Session, project_id: int, task_in: TaskCreate, current_user: User
+        db: Session, project_id: int, task_in: TaskCreate, current_user: CurrentUser
     ) -> Task:
         project = db.scalar(select(Project).where(Project.id == project_id))
         if not project:
@@ -74,7 +75,7 @@ class TaskService:
     def get_project_tasks(
         db: Session,
         project_id: int,
-        current_user: User,
+        current_user: CurrentUser,
         search: str | None = None,
         status: TaskStatusEnum | None = None,
         priority: TaskPriorityEnum | None = None,
@@ -116,14 +117,14 @@ class TaskService:
         return {"items": tasks, "total": total}
 
     @staticmethod
-    def get_task_details(db: Session, task_id: int, current_user: User) -> Task:
+    def get_task_details(db: Session, task_id: int, current_user: CurrentUser) -> Task:
         task = TaskService._get_task(db, task_id)
         TaskService._check_project_membership(db, task.project_id, current_user.id)
         return task
 
     @staticmethod
     def update_task(
-        db: Session, task_id: int, task_in: TaskUpdate, current_user: User
+        db: Session, task_id: int, task_in: TaskUpdate, current_user: CurrentUser
     ) -> Task:
         task = TaskService._get_task(db, task_id)
 
@@ -156,7 +157,7 @@ class TaskService:
         return task
 
     @staticmethod
-    def delete_task(db: Session, task_id: int, current_user: User) -> None:
+    def delete_task(db: Session, task_id: int, current_user: CurrentUser) -> None:
         task = TaskService._get_task(db, task_id)
 
         TaskService._check_project_membership(db, task.project_id, current_user.id)

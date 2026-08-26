@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, select, delete
+from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import (
     NotFoundException,
@@ -8,6 +9,7 @@ from app.core.exceptions import (
 )
 from app.models.project import Project, ProjectMember, ProjectMemberRoleEnum
 from app.models.user import User
+from app.schemas.user import CurrentUser
 from fastapi import BackgroundTasks
 
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectMemberCreate
@@ -23,7 +25,7 @@ class ProjectService:
         return project
 
     @staticmethod
-    def create_project(db: Session, project_in: ProjectCreate, current_user: User, background_tasks: BackgroundTasks) -> Project:
+    def create_project(db: Session, project_in: ProjectCreate, current_user: CurrentUser, background_tasks: BackgroundTasks) -> Project:
         # Create project
         db_project = Project(
             name=project_in.name,
@@ -55,7 +57,7 @@ class ProjectService:
 
     @staticmethod
     def get_user_projects(
-        db: Session, current_user: User, search: str | None = None
+        db: Session, current_user: CurrentUser, search: str | None = None
     ) -> list[Project]:
         # User can see projects they own or are a member of
         stmt = select(Project).join(ProjectMember).where(
@@ -68,7 +70,7 @@ class ProjectService:
         return list(db.scalars(stmt).all())
 
     @staticmethod
-    def get_project_details(db: Session, project_id: int, current_user: User) -> Project:
+    def get_project_details(db: Session, project_id: int, current_user: CurrentUser) -> Project:
         project = ProjectService.get_project_by_id(db, project_id)
         
         # Check if user is a member or owner
@@ -85,7 +87,7 @@ class ProjectService:
 
     @staticmethod
     def update_project(
-        db: Session, project_id: int, project_in: ProjectUpdate, current_user: User, background_tasks: BackgroundTasks
+        db: Session, project_id: int, project_in: ProjectUpdate, current_user: CurrentUser, background_tasks: BackgroundTasks
     ) -> Project:
         project = ProjectService.get_project_by_id(db, project_id)
 
@@ -108,7 +110,7 @@ class ProjectService:
         return project
 
     @staticmethod
-    def delete_project(db: Session, project_id: int, current_user: User) -> None:
+    def delete_project(db: Session, project_id: int, current_user: CurrentUser) -> None:
         project = ProjectService.get_project_by_id(db, project_id)
 
         if project.owner_id != current_user.id:
@@ -120,7 +122,7 @@ class ProjectService:
 
     @staticmethod
     def add_project_member(
-        db: Session, project_id: int, member_in: ProjectMemberCreate, current_user: User, background_tasks: BackgroundTasks
+        db: Session, project_id: int, member_in: ProjectMemberCreate, current_user: CurrentUser, background_tasks: BackgroundTasks
     ) -> ProjectMember:
         project = ProjectService.get_project_by_id(db, project_id)
 
@@ -132,22 +134,17 @@ class ProjectService:
         if not user_to_add:
             raise NotFoundException(detail="User to add not found")
 
-        # Check if already a member
-        existing_member = db.scalar(select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == member_in.user_id
-        ))
-
-        if existing_member:
-            raise BadRequestException(detail="User is already a member of this project")
-
         db_member = ProjectMember(
             project_id=project_id,
             user_id=member_in.user_id,
             role=member_in.role.value,
         )
         db.add(db_member)
-        db.flush()
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            raise BadRequestException(detail="User is already a member of this project")
         db.refresh(db_member)
         background_tasks.add_task(
             ActivityLogService.log_action,
@@ -160,7 +157,7 @@ class ProjectService:
 
     @staticmethod
     def remove_project_member(
-        db: Session, project_id: int, user_id: int, current_user: User, background_tasks: BackgroundTasks
+        db: Session, project_id: int, user_id: int, current_user: CurrentUser, background_tasks: BackgroundTasks
     ) -> None:
         project = ProjectService.get_project_by_id(db, project_id)
 
@@ -191,7 +188,7 @@ class ProjectService:
 
     @staticmethod
     def get_project_members(
-        db: Session, project_id: int, current_user: User
+        db: Session, project_id: int, current_user: CurrentUser
     ) -> list[ProjectMember]:
         project = ProjectService.get_project_by_id(db, project_id)
 

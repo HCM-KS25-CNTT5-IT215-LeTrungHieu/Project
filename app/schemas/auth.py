@@ -9,6 +9,8 @@ class Token(BaseModel):
 
 class TokenPayload(BaseModel):
     sub: str | None = None
+    role: str | None = None
+    is_active: bool | None = None
     type: str | None = None
 
 

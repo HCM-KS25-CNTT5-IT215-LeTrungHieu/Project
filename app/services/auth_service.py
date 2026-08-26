@@ -25,8 +25,8 @@ class AuthService:
         if not user.is_active:
             raise BadRequestException(detail="Inactive user")
 
-        access_token = create_access_token(subject=user.id)
-        refresh_token_str = create_refresh_token(subject=user.id)
+        access_token = create_access_token(subject=user.id, role=user.role.value, is_active=user.is_active)
+        refresh_token_str = create_refresh_token(subject=user.id, role=user.role.value, is_active=user.is_active)
 
         # Save to database
         db_token = RefreshToken(
@@ -81,8 +81,8 @@ class AuthService:
         db_token.is_revoked = True
 
         # Generate new tokens
-        access_token = create_access_token(subject=user.id)
-        new_refresh_token_str = create_refresh_token(subject=user.id)
+        access_token = create_access_token(subject=user.id, role=user.role.value, is_active=user.is_active)
+        new_refresh_token_str = create_refresh_token(subject=user.id, role=user.role.value, is_active=user.is_active)
 
         # Save new refresh token
         new_db_token = RefreshToken(

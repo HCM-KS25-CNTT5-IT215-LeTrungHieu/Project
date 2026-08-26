@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.dependencies.auth import get_current_active_user
-from app.models.user import User
+from app.schemas.user import CurrentUser
 from app.schemas.response import APIResponse
 from app.schemas.task import TaskResponse, TaskUpdate
 from app.services.task_service import TaskService
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
 def get_task(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     task = TaskService.get_task_details(db, task_id, current_user)
     return APIResponse(message="Task retrieved successfully", data=task)
@@ -26,7 +26,7 @@ def update_task(
     task_id: int,
     task_in: TaskUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     task = TaskService.update_task(db, task_id, task_in, current_user)
     return APIResponse(message="Task updated successfully", data=task)
@@ -36,7 +36,7 @@ def update_task(
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: CurrentUser = Depends(get_current_active_user),
 ):
     TaskService.delete_task(db, task_id, current_user)
     return APIResponse(message="Task deleted successfully")
