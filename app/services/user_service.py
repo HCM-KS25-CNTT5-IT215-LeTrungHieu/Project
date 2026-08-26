@@ -1,7 +1,7 @@
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import BadRequestException
 from app.core.security import get_password_hash
 from app.models.user import RoleEnum, User
 from app.schemas.user import UserRegister
@@ -32,7 +32,7 @@ class UserService:
             is_active=True,
         )
         db.add(db_user)
-        db.commit()
+        db.flush()
         db.refresh(db_user)
         return db_user
 

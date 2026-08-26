@@ -2,16 +2,12 @@ import jwt
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import (
     ForbiddenException,
-    NotFoundException,
     UnauthorizedException,
 )
-from app.db.database import get_db
 from app.models.user import RoleEnum
 from app.schemas.auth import TokenPayload
 from app.schemas.user import CurrentUser
@@ -31,13 +27,15 @@ def get_current_user(
     except (jwt.PyJWTError, ValidationError):
         raise UnauthorizedException(detail="Could not validate credentials")
 
-    if token_data.sub is None or token_data.role is None or token_data.is_active is None:
+    if (
+        token_data.sub is None
+        or token_data.role is None
+        or token_data.is_active is None
+    ):
         raise UnauthorizedException(detail="Could not validate credentials")
 
     return CurrentUser(
-        id=int(token_data.sub),
-        role=token_data.role,
-        is_active=token_data.is_active
+        id=int(token_data.sub), role=token_data.role, is_active=token_data.is_active
     )
 
 

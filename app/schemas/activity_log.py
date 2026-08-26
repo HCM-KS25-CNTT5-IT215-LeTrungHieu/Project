@@ -13,6 +13,7 @@ class ActivityLogResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class ActivityLogListResponse(BaseModel):
     items: list[ActivityLogResponse]
     total: int

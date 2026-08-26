@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -24,20 +22,22 @@ from app.services.task_service import TaskService
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
-@router.post("", response_model=APIResponse[ProjectResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=APIResponse[ProjectResponse], status_code=status.HTTP_201_CREATED
+)
 def create_project(
     project_in: ProjectCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
-    project = ProjectService.create_project(db, project_in, current_user, background_tasks)
-    return APIResponse(
-        message="Project created successfully", data=project
+    project = ProjectService.create_project(
+        db, project_in, current_user, background_tasks
     )
+    return APIResponse(message="Project created successfully", data=project)
 
 
-@router.get("", response_model=APIResponse[List[ProjectResponse]])
+@router.get("", response_model=APIResponse[list[ProjectResponse]])
 def get_projects(
     search: str | None = None,
     db: Session = Depends(get_db),
@@ -65,7 +65,9 @@ def update_project(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
-    project = ProjectService.update_project(db, project_id, project_in, current_user, background_tasks)
+    project = ProjectService.update_project(
+        db, project_id, project_in, current_user, background_tasks
+    )
     return APIResponse(message="Project updated successfully", data=project)
 
 
@@ -79,7 +81,11 @@ def delete_project(
     return APIResponse(message="Project deleted successfully")
 
 
-@router.post("/{project_id}/members", response_model=APIResponse[ProjectMemberResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{project_id}/members",
+    response_model=APIResponse[ProjectMemberResponse],
+    status_code=status.HTTP_201_CREATED,
+)
 def add_project_member(
     project_id: int,
     member_in: ProjectMemberCreate,
@@ -87,10 +93,10 @@ def add_project_member(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
-    member = ProjectService.add_project_member(db, project_id, member_in, current_user, background_tasks)
-    return APIResponse(
-        message="Member added successfully", data=member
+    member = ProjectService.add_project_member(
+        db, project_id, member_in, current_user, background_tasks
     )
+    return APIResponse(message="Member added successfully", data=member)
 
 
 @router.delete("/{project_id}/members/{user_id}", response_model=APIResponse[None])
@@ -101,11 +107,15 @@ def remove_project_member(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
-    ProjectService.remove_project_member(db, project_id, user_id, current_user, background_tasks)
+    ProjectService.remove_project_member(
+        db, project_id, user_id, current_user, background_tasks
+    )
     return APIResponse(message="Member removed successfully")
 
 
-@router.get("/{project_id}/members", response_model=APIResponse[List[ProjectMemberResponse]])
+@router.get(
+    "/{project_id}/members", response_model=APIResponse[list[ProjectMemberResponse]]
+)
 def get_project_members(
     project_id: int,
     db: Session = Depends(get_db),
@@ -115,7 +125,11 @@ def get_project_members(
     return APIResponse(message="Members retrieved successfully", data=members)
 
 
-@router.post("/{project_id}/tasks", response_model=APIResponse[TaskResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{project_id}/tasks",
+    response_model=APIResponse[TaskResponse],
+    status_code=status.HTTP_201_CREATED,
+)
 def create_task(
     project_id: int,
     task_in: TaskCreate,
@@ -156,7 +170,9 @@ def get_tasks(
     return APIResponse(message="Tasks retrieved successfully", data=tasks_data)
 
 
-@router.get("/{project_id}/activity-logs", response_model=APIResponse[ActivityLogListResponse])
+@router.get(
+    "/{project_id}/activity-logs", response_model=APIResponse[ActivityLogListResponse]
+)
 def get_activity_logs(
     project_id: int,
     limit: int = Query(50, ge=1, le=100),
@@ -164,8 +180,8 @@ def get_activity_logs(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
-    # Verify user has access to project
+
     ProjectService.get_project_details(db, project_id, current_user)
-    
+
     logs_data = ActivityLogService.get_project_logs(db, project_id, limit, offset)
     return APIResponse(message="Activity logs retrieved successfully", data=logs_data)

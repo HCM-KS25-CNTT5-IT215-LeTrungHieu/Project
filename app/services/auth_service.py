@@ -31,7 +31,6 @@ class AuthService:
             subject=user.id, role=user.role, is_active=user.is_active
         )
 
-        # Save to database
         db_token = RefreshToken(
             token=refresh_token_str,
             user_id=user.id,
@@ -39,7 +38,7 @@ class AuthService:
             + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
         db.add(db_token)
-        db.commit()
+        db.flush()
 
         return Token(
             access_token=access_token,
@@ -54,13 +53,12 @@ class AuthService:
                 refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
             )
             token_data = TokenPayload(**payload)
-        except jwt.PyJWTError, ValidationError:
+        except (jwt.PyJWTError, ValidationError):
             raise UnauthorizedException(detail="Could not validate credentials")
 
         if token_data.sub is None or token_data.type != "refresh":
             raise UnauthorizedException(detail="Invalid token")
 
-        # Validate token against database
         db_token = db.scalar(
             select(RefreshToken).where(RefreshToken.token == refresh_token)
         )
@@ -68,10 +66,7 @@ class AuthService:
             raise UnauthorizedException(detail="Token not found")
         if db_token.is_revoked:
             raise UnauthorizedException(detail="Token has been revoked")
-        if (
-            db_token.expires_at < datetime.now(UTC).replace(tzinfo=None)
-        ):  # SQLite handles naive, but since UTC is timezone aware, let's just compare. Actually sqlalchemy might return naive or aware depending on dialect. Let's compare safely.
-            # Assuming DB returns aware datetime if we use DateTime with timezone, or naive. Better to compare directly with UTC.
+        if db_token.expires_at < datetime.now(UTC).replace(tzinfo=None):
             pass
 
         user = UserService.get_user_by_id(db, user_id=int(token_data.sub))
@@ -80,10 +75,8 @@ class AuthService:
         if not user.is_active:
             raise BadRequestException(detail="Inactive user")
 
-        # Revoke old token
         db_token.is_revoked = True
 
-        # Generate new tokens
         access_token = create_access_token(
             subject=user.id, role=user.role, is_active=user.is_active
         )
@@ -91,7 +84,6 @@ class AuthService:
             subject=user.id, role=user.role, is_active=user.is_active
         )
 
-        # Save new refresh token
         new_db_token = RefreshToken(
             token=new_refresh_token_str,
             user_id=user.id,
@@ -99,7 +91,7 @@ class AuthService:
             + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
         db.add(new_db_token)
-        db.commit()
+        db.flush()
 
         return Token(
             access_token=access_token,

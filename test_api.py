@@ -18,12 +18,16 @@ def make_request(method, endpoint, data=None, token=None):
         with urllib.request.urlopen(req) as response:
             status = response.getcode()
             body = response.read().decode("utf-8")
-            return status, json.loads(body) if body else {}
+            res = json.loads(body) if body else {}
+            assert isinstance(res, dict)
+            return status, res
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8")
         try:
-            return e.code, json.loads(body)
-        except:
+            res = json.loads(body)
+            assert isinstance(res, dict)
+            return e.code, res
+        except Exception:  # noqa: BLE001
             return e.code, body
     except urllib.error.URLError as e:
         print(f"Error connecting to {url}: {e}")
@@ -54,8 +58,7 @@ def run_test(
 
 print("=== BẮT ĐẦU TEST TOÀN BỘ API ===")
 
-# 1. Đăng ký & Đăng nhập
-# Đăng ký admin (đã có từ seed nên sẽ bỏ qua tạo, login luôn)
+
 status, res = make_request(
     "POST", "/auth/login", {"email": "admin@example.com", "password": "admin123"}
 )
@@ -66,7 +69,7 @@ status, res = make_request(
 )
 user_token = res["data"]["access_token"] if status == 200 else None
 
-# Tạo outsider
+
 outsider_email = "outsider@example.com"
 make_request(
     "POST",
@@ -78,27 +81,25 @@ status, res = make_request(
 )
 outsider_token = res["data"]["access_token"] if status == 200 else None
 
-# Lấy ID của outsider
+
 status, res = make_request("GET", "/users/me", token=outsider_token)
 outsider_id = res["data"]["id"] if status == 200 else 999
 
-# Lấy ID của user
+
 status, res = make_request("GET", "/users/me", token=user_token)
 user_id = res["data"]["id"] if status == 200 else 999
 
-# Lấy ID của admin
+
 status, res = make_request("GET", "/users/me", token=admin_token)
 admin_id = res["data"]["id"] if status == 200 else 999
 
-# 2. Users API
+
 run_test("GET /users/me (Valid Token)", 200, "GET", "/users/me", token=admin_token)
-run_test(
-    "GET /users/me (No Token)", 401, "GET", "/users/me"
-)  # FastAPI HTTPBearer returns 401 if no auth header
+run_test("GET /users/me (No Token)", 401, "GET", "/users/me")
 run_test("GET /users (Admin)", 200, "GET", "/users", token=admin_token)
 run_test("GET /users (Normal User)", 403, "GET", "/users", token=user_token)
 
-# 3. Projects API
+
 project_id = run_test(
     "POST /projects (Create Project)",
     201,
@@ -142,7 +143,7 @@ run_test(
     token=user_token,
 )
 
-# 4. Project Members API
+
 run_test(
     "POST /projects/{id}/members (Owner adds member)",
     201,
@@ -191,7 +192,7 @@ run_test(
     token=user_token,
 )
 
-# 5. Tasks API
+
 task_id = run_test(
     "POST /projects/{id}/tasks (Member creates task)",
     201,
@@ -238,7 +239,7 @@ run_test(
     token=admin_token,
 )
 
-# 6. Activity Logs API
+
 run_test(
     "GET /projects/{id}/activity-logs (Member views logs)",
     200,
@@ -254,7 +255,7 @@ run_test(
     token=outsider_token,
 )
 
-# Xóa Project cuối cùng (Cleanup)
+
 run_test(
     "DELETE /projects/{id} (Member deletes project)",
     403,

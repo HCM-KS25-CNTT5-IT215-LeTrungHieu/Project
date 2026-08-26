@@ -14,23 +14,22 @@ logger = logging.getLogger(__name__)
 
 
 def init_db(engine):
-    # Kiểm tra xem database đã tồn tại chưa, nếu chưa thì tạo
+
     if not database_exists(engine.url):
         create_database(engine.url)
         logger.info(f"Database created at {engine.url}")
     else:
         logger.info(f"Database already exists at {engine.url}")
 
-    # Tạo tất cả các bảng nếu chưa tồn tại
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables verified/created.")
 
 
 def seed_data(db: Session):
-    # 1. Seed Admin User
+
     admin_email = "admin@example.com"
     admin_user = db.scalar(select(User).where(User.email == admin_email))
-    
+
     if not admin_user:
         logger.info("Seeding Admin user...")
         admin_user = User(
@@ -38,52 +37,47 @@ def seed_data(db: Session):
             full_name="System Administrator",
             password_hash=get_password_hash("admin123"),
             role=RoleEnum.ADMIN.value,
-            is_active=True
+            is_active=True,
         )
         db.add(admin_user)
-        db.flush() # Để lấy ID của admin_user
+        db.flush()
 
-        # 2. Seed Normal User
         logger.info("Seeding Normal user...")
         normal_user = User(
             email="user@example.com",
             full_name="Regular User",
             password_hash=get_password_hash("user123"),
             role=RoleEnum.USER.value,
-            is_active=True
+            is_active=True,
         )
         db.add(normal_user)
         db.flush()
-        
-        # 3. Seed Sample Project cho Admin
+
         logger.info("Seeding Sample Project...")
         project = Project(
             name="Sample Workspace",
             description="Dự án mẫu được tạo tự động khi khởi chạy hệ thống.",
-            owner_id=admin_user.id
+            owner_id=admin_user.id,
         )
         db.add(project)
         db.flush()
 
-        # Thêm Admin làm Owner member của Project này
         project_member = ProjectMember(
             project_id=project.id,
             user_id=admin_user.id,
-            role=ProjectMemberRoleEnum.OWNER.value
+            role=ProjectMemberRoleEnum.OWNER.value,
         )
         db.add(project_member)
         db.flush()
 
-        # Thêm Normal User làm thành viên của Project
         normal_member = ProjectMember(
             project_id=project.id,
             user_id=normal_user.id,
-            role=ProjectMemberRoleEnum.MEMBER.value
+            role=ProjectMemberRoleEnum.MEMBER.value,
         )
         db.add(normal_member)
         db.flush()
 
-        # 4. Seed Sample Task
         logger.info("Seeding Sample Task...")
         task = Task(
             title="Nhiệm vụ đầu tiên",
@@ -91,11 +85,10 @@ def seed_data(db: Session):
             status=TaskStatusEnum.TODO.value,
             priority=TaskPriorityEnum.MEDIUM.value,
             project_id=project.id,
-            assignee_id=normal_user.id
+            assignee_id=normal_user.id,
         )
         db.add(task)
-        
-        # Chốt sổ tất cả dữ liệu mẫu
+
         db.commit()
         logger.info("Đã seed dữ liệu mẫu thành công!")
     else:

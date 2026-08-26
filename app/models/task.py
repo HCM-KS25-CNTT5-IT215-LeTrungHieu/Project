@@ -1,15 +1,14 @@
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.models.project import Project
-    from app.models.user import User
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.project import Project
+    from app.models.user import User
 
 
 class TaskStatusEnum(StrEnum):
@@ -45,7 +44,7 @@ class Task(Base):
         DateTime, default=lambda: datetime.now(UTC), nullable=False
     )
 
-    project: Mapped[Project] = relationship("Project", back_populates="tasks")
-    assignee: Mapped[User | None] = relationship(
+    project: Mapped["Project"] = relationship("Project", back_populates="tasks")
+    assignee: Mapped["User | None"] = relationship(
         "User", back_populates="assigned_tasks"
     )

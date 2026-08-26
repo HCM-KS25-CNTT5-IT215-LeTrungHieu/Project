@@ -1,5 +1,5 @@
 from fastapi import BackgroundTasks
-from sqlalchemy import delete, or_, select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -24,32 +24,36 @@ class ProjectService:
         return project
 
     @staticmethod
-    def create_project(db: Session, project_in: ProjectCreate, current_user: CurrentUser, background_tasks: BackgroundTasks) -> Project:
-        # Create project
+    def create_project(
+        db: Session,
+        project_in: ProjectCreate,
+        current_user: CurrentUser,
+        background_tasks: BackgroundTasks,
+    ) -> Project:
+
         db_project = Project(
             name=project_in.name,
             description=project_in.description,
             owner_id=current_user.id,
         )
         db.add(db_project)
-        db.commit()
+        db.flush()
         db.refresh(db_project)
 
-        # Add owner as a member
         db_member = ProjectMember(
             project_id=db_project.id,
             user_id=current_user.id,
             role=ProjectMemberRoleEnum.OWNER.value,
         )
         db.add(db_member)
-        db.commit()
+        db.flush()
 
         background_tasks.add_task(
             ActivityLogService.log_action,
             project_id=db_project.id,
             user_id=current_user.id,
             action="CREATE_PROJECT",
-            details=f"Project '{db_project.name}' created"
+            details=f"Project '{db_project.name}' created",
         )
 
         return db_project
@@ -58,9 +62,11 @@ class ProjectService:
     def get_user_projects(
         db: Session, current_user: CurrentUser, search: str | None = None
     ) -> list[Project]:
-        # User can see projects they own or are a member of
-        stmt = select(Project).join(ProjectMember).where(
-            ProjectMember.user_id == current_user.id
+
+        stmt = (
+            select(Project)
+            .join(ProjectMember)
+            .where(ProjectMember.user_id == current_user.id)
         )
 
         if search:
@@ -69,42 +75,50 @@ class ProjectService:
         return list(db.scalars(stmt).all())
 
     @staticmethod
-    def get_project_details(db: Session, project_id: int, current_user: CurrentUser) -> Project:
+    def get_project_details(
+        db: Session, project_id: int, current_user: CurrentUser
+    ) -> Project:
         project = ProjectService.get_project_by_id(db, project_id)
-        
-        # Check if user is a member or owner
-        # Check if user is a member or owner
-        is_member = db.scalar(select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == current_user.id
-        ))
+
+        is_member = db.scalar(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project_id,
+                ProjectMember.user_id == current_user.id,
+            )
+        )
 
         if not is_member and project.owner_id != current_user.id:
             raise ForbiddenException(detail="You do not have access to this project")
-            
+
         return project
 
     @staticmethod
     def update_project(
-        db: Session, project_id: int, project_in: ProjectUpdate, current_user: CurrentUser, background_tasks: BackgroundTasks
+        db: Session,
+        project_id: int,
+        project_in: ProjectUpdate,
+        current_user: CurrentUser,
+        background_tasks: BackgroundTasks,
     ) -> Project:
         project = ProjectService.get_project_by_id(db, project_id)
 
         if project.owner_id != current_user.id:
-            raise ForbiddenException(detail="Only the project owner can update the project")
+            raise ForbiddenException(
+                detail="Only the project owner can update the project"
+            )
 
         update_data = project_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(project, field, value)
 
-        db.commit()
+        db.flush()
         db.refresh(project)
         background_tasks.add_task(
             ActivityLogService.log_action,
             project_id=project.id,
             user_id=current_user.id,
             action="UPDATE_PROJECT",
-            details="Project details updated"
+            details="Project details updated",
         )
         return project
 
@@ -117,23 +131,26 @@ class ProjectService:
 
         from app.models.activity_log import ActivityLog
         from app.models.task import Task
-        
+
         db.execute(delete(ActivityLog).where(ActivityLog.project_id == project_id))
         db.execute(delete(Task).where(Task.project_id == project_id))
         db.execute(delete(ProjectMember).where(ProjectMember.project_id == project_id))
         db.delete(project)
-        db.commit()
+        db.flush()
 
     @staticmethod
     def add_project_member(
-        db: Session, project_id: int, member_in: ProjectMemberCreate, current_user: CurrentUser, background_tasks: BackgroundTasks
+        db: Session,
+        project_id: int,
+        member_in: ProjectMemberCreate,
+        current_user: CurrentUser,
+        background_tasks: BackgroundTasks,
     ) -> ProjectMember:
         project = ProjectService.get_project_by_id(db, project_id)
 
         if project.owner_id != current_user.id:
             raise ForbiddenException(detail="Only the project owner can add members")
 
-        # Check if user exists
         user_to_add = db.scalar(select(User).where(User.id == member_in.user_id))
         if not user_to_add:
             raise NotFoundException(detail="User to add not found")
@@ -145,7 +162,7 @@ class ProjectService:
         )
         db.add(db_member)
         try:
-            db.commit()
+            db.flush()
         except IntegrityError:
             db.rollback()
             raise BadRequestException(detail="User is already a member of this project")
@@ -155,13 +172,17 @@ class ProjectService:
             project_id=project_id,
             user_id=current_user.id,
             action="ADD_MEMBER",
-            details=f"User {member_in.user_id} added with role {member_in.role.value}"
+            details=f"User {member_in.user_id} added with role {member_in.role.value}",
         )
         return db_member
 
     @staticmethod
     def remove_project_member(
-        db: Session, project_id: int, user_id: int, current_user: CurrentUser, background_tasks: BackgroundTasks
+        db: Session,
+        project_id: int,
+        user_id: int,
+        current_user: CurrentUser,
+        background_tasks: BackgroundTasks,
     ) -> None:
         project = ProjectService.get_project_by_id(db, project_id)
 
@@ -171,23 +192,24 @@ class ProjectService:
         if project.owner_id == user_id:
             raise BadRequestException(detail="Cannot remove the owner from the project")
 
-        member = db.scalar(select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == user_id
-        ))
+        member = db.scalar(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project_id, ProjectMember.user_id == user_id
+            )
+        )
 
         if not member:
             raise NotFoundException(detail="User is not a member of this project")
 
         db.delete(member)
-        db.commit()
+        db.flush()
 
         background_tasks.add_task(
             ActivityLogService.log_action,
             project_id=project_id,
             user_id=current_user.id,
             action="REMOVE_MEMBER",
-            details=f"User {user_id} removed"
+            details=f"User {user_id} removed",
         )
 
     @staticmethod
@@ -196,13 +218,18 @@ class ProjectService:
     ) -> list[ProjectMember]:
         project = ProjectService.get_project_by_id(db, project_id)
 
-        # Check if current user is a member
-        is_member = db.scalar(select(ProjectMember).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == current_user.id
-        ))
+        is_member = db.scalar(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project_id,
+                ProjectMember.user_id == current_user.id,
+            )
+        )
 
         if not is_member and project.owner_id != current_user.id:
             raise ForbiddenException(detail="You do not have access to this project")
 
-        return list(db.scalars(select(ProjectMember).where(ProjectMember.project_id == project_id)).all())
+        return list(
+            db.scalars(
+                select(ProjectMember).where(ProjectMember.project_id == project_id)
+            ).all()
+        )

@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -13,12 +11,15 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.get("/me", response_model=APIResponse[UserResponse])
-def read_user_me(current_user: CurrentUser = Depends(get_current_active_user), db: Session = Depends(get_db)):
+def read_user_me(
+    current_user: CurrentUser = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
     full_user = UserService.get_user_by_id(db, user_id=current_user.id)
     return APIResponse(message="Current user profile retrieved", data=full_user)
 
 
-@router.get("", response_model=APIResponse[List[UserResponse]])
+@router.get("", response_model=APIResponse[list[UserResponse]])
 def read_users(
     skip: int = 0,
     limit: int = 100,

@@ -19,7 +19,6 @@ def seed():
 
     db = SessionLocal()
 
-    # Check if we already have data
     if db.query(User).first():
         print("Database already seeded.")
         db.close()

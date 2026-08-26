@@ -20,7 +20,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    subject: str | Any, role: str, is_active: bool, expires_delta: timedelta | None = None
+    subject: str | Any,
+    role: str,
+    is_active: bool,
+    expires_delta: timedelta | None = None,
 ) -> str:
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
@@ -28,7 +31,13 @@ def create_access_token(
         expire = datetime.now(UTC) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    to_encode = {"exp": expire, "sub": str(subject), "role": role, "is_active": is_active, "type": "access"}
+    to_encode = {
+        "exp": expire,
+        "sub": str(subject),
+        "role": role,
+        "is_active": is_active,
+        "type": "access",
+    }
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
@@ -36,13 +45,22 @@ def create_access_token(
 
 
 def create_refresh_token(
-    subject: str | Any, role: str, is_active: bool, expires_delta: timedelta | None = None
+    subject: str | Any,
+    role: str,
+    is_active: bool,
+    expires_delta: timedelta | None = None,
 ) -> str:
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
         expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = {"exp": expire, "sub": str(subject), "role": role, "is_active": is_active, "type": "refresh"}
+    to_encode = {
+        "exp": expire,
+        "sub": str(subject),
+        "role": role,
+        "is_active": is_active,
+        "type": "refresh",
+    }
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )

@@ -5,4 +5,12 @@ from app.models.task import Task
 from app.models.token import RefreshToken
 from app.models.user import User
 
-__all__ = ["Base", "User", "Project", "ProjectMember", "Task", "RefreshToken", "ActivityLog"]
+__all__ = [
+    "ActivityLog",
+    "Base",
+    "Project",
+    "ProjectMember",
+    "RefreshToken",
+    "Task",
+    "User",
+]

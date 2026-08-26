@@ -10,6 +10,7 @@ from app.schemas.response import APIResponse
 
 class CustomException(Exception):
     def __init__(self, status_code: int, detail: str):
+        super().__init__(detail)
         self.status_code = status_code
         self.detail = detail
 
@@ -34,13 +35,15 @@ class ForbiddenException(CustomException):
         super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
 
-def format_pydantic_errors(errors: list[dict[str, Any]]) -> dict[str, str]:
+from typing import Any, Sequence
+
+def format_pydantic_errors(errors: Sequence[Any]) -> dict[str, str]:
     formatted_errors = {}
     for error in errors:
         loc = ".".join(str(l) for l in error.get("loc", []) if l != "body")
         if not loc:
             loc = "body"
-        formatted_errors[loc] = error.get("msg")
+        formatted_errors[loc] = str(error.get("msg", "Unknown error"))
     return formatted_errors
 
 
@@ -69,7 +72,7 @@ def validation_exception_handler(request: Request, exc: RequestValidationError):
 
 
 def global_exception_handler(request: Request, exc: Exception):
-    # Log the exception here in a real app (e.g., logger.error(exc))
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=APIResponse(

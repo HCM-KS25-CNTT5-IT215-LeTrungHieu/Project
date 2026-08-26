@@ -19,7 +19,7 @@ from app.schemas.response import APIResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Khởi tạo bảng và seed dữ liệu khi server bật lên
+
     init_db(engine)
     db = SessionLocal()
     try:
@@ -27,17 +27,16 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
     yield
-    # Cleanup khi server tắt (nếu cần)
 
 
 app = FastAPI(title="Project API", lifespan=lifespan)
 app.include_router(api_router)
 
-# Add Exception Handlers
+
 app.add_exception_handler(CustomException, custom_exception_handler)  # type: ignore
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore
 app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore
-app.add_exception_handler(Exception, global_exception_handler)
+app.add_exception_handler(Exception, global_exception_handler)  # type: ignore
 
 
 @app.get("/health", response_model=APIResponse[dict])

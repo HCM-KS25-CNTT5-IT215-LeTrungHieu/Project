@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict
 from app.models.project import ProjectMemberRoleEnum
 
 
-# --- ProjectMember Schemas ---
 class ProjectMemberBase(BaseModel):
     role: ProjectMemberRoleEnum = ProjectMemberRoleEnum.MEMBER
 
@@ -26,7 +25,6 @@ class ProjectMemberResponse(ProjectMemberBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# --- Project Schemas ---
 class ProjectBase(BaseModel):
     name: str
     description: str | None = None

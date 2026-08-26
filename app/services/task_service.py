@@ -10,7 +10,6 @@ from app.core.exceptions import (
 )
 from app.models.project import Project, ProjectMember
 from app.models.task import Task, TaskPriorityEnum, TaskStatusEnum
-from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.schemas.user import CurrentUser
 
@@ -55,7 +54,9 @@ class TaskService:
                 )
             )
             if not assignee_member:
-                raise BadRequestException(detail="Assignee must be a member of the project")
+                raise BadRequestException(
+                    detail="Assignee must be a member of the project"
+                )
 
         db_task = Task(
             project_id=project_id,
@@ -67,7 +68,7 @@ class TaskService:
             due_date=task_in.due_date,
         )
         db.add(db_task)
-        db.commit()
+        db.flush()
         db.refresh(db_task)
         return db_task
 
@@ -130,6 +131,7 @@ class TaskService:
 
         TaskService._check_project_membership(db, task.project_id, current_user.id)
         project = db.scalar(select(Project).where(Project.id == task.project_id))
+        assert project is not None
 
         if project.owner_id != current_user.id and task.assignee_id != current_user.id:
             raise ForbiddenException(
@@ -144,7 +146,9 @@ class TaskService:
                 )
             )
             if not assignee_member:
-                raise BadRequestException(detail="Assignee must be a member of the project")
+                raise BadRequestException(
+                    detail="Assignee must be a member of the project"
+                )
 
         update_data = task_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
@@ -152,7 +156,7 @@ class TaskService:
                 value = value.value
             setattr(task, field, value)
 
-        db.commit()
+        db.flush()
         db.refresh(task)
         return task
 
@@ -162,9 +166,10 @@ class TaskService:
 
         TaskService._check_project_membership(db, task.project_id, current_user.id)
         project = db.scalar(select(Project).where(Project.id == task.project_id))
+        assert project is not None
 
         if project.owner_id != current_user.id:
             raise ForbiddenException(detail="Only the project owner can delete tasks")
 
         db.execute(delete(Task).where(Task.id == task_id))
-        db.commit()
+        db.flush()

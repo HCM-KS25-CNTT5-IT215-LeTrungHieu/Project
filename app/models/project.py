@@ -1,15 +1,14 @@
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.models.task import Task
-    from app.models.user import User
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.task import Task
+    from app.models.user import User
 
 
 class ProjectMemberRoleEnum(StrEnum):
@@ -28,11 +27,11 @@ class Project(Base):
         DateTime, default=lambda: datetime.now(UTC), nullable=False
     )
 
-    owner: Mapped[User] = relationship("User", back_populates="owned_projects")
-    members: Mapped[list[ProjectMember]] = relationship(
+    owner: Mapped["User"] = relationship("User", back_populates="owned_projects")
+    members: Mapped[list["ProjectMember"]] = relationship(
         "ProjectMember", back_populates="project"
     )
-    tasks: Mapped[list[Task]] = relationship("Task", back_populates="project")
+    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="project")
 
 
 class ProjectMember(Base):
