@@ -67,7 +67,7 @@ class TaskService:
             due_date=task_in.due_date,
         )
         db.add(db_task)
-        db.flush()
+        db.commit()
         db.refresh(db_task)
         return db_task
 
@@ -152,7 +152,7 @@ class TaskService:
                 value = value.value
             setattr(task, field, value)
 
-        db.flush()
+        db.commit()
         db.refresh(task)
         return task
 
@@ -167,4 +167,4 @@ class TaskService:
             raise ForbiddenException(detail="Only the project owner can delete tasks")
 
         db.execute(delete(Task).where(Task.id == task_id))
-        db.flush()
+        db.commit()

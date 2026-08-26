@@ -1,10 +1,11 @@
 from typing import Any
+
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
-from sqlalchemy import select, desc, func
 
 from app.db.database import SessionLocal
-
 from app.models.activity_log import ActivityLog
+
 
 class ActivityLogService:
     @staticmethod

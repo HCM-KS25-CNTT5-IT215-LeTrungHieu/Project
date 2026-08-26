@@ -1,25 +1,25 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Query, status, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.dependencies.auth import get_current_active_user
-from app.schemas.user import CurrentUser
+from app.models.task import TaskPriorityEnum, TaskStatusEnum
+from app.schemas.activity_log import ActivityLogListResponse
 from app.schemas.project import (
     ProjectCreate,
-    ProjectResponse,
-    ProjectUpdate,
     ProjectMemberCreate,
     ProjectMemberResponse,
+    ProjectResponse,
+    ProjectUpdate,
 )
 from app.schemas.response import APIResponse
-from app.schemas.task import TaskCreate, TaskResponse, TaskListResponse
-from app.schemas.activity_log import ActivityLogListResponse
-from app.models.task import TaskStatusEnum, TaskPriorityEnum
+from app.schemas.task import TaskCreate, TaskListResponse, TaskResponse
+from app.schemas.user import CurrentUser
+from app.services.activity_log_service import ActivityLogService
 from app.services.project_service import ProjectService
 from app.services.task_service import TaskService
-from app.services.activity_log_service import ActivityLogService
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 

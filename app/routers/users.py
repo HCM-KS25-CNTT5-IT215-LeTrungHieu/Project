@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.dependencies.auth import get_current_active_user, get_current_admin_user
 from app.schemas.response import APIResponse
-from app.schemas.user import UserResponse, CurrentUser
+from app.schemas.user import CurrentUser, UserResponse
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["Users"])

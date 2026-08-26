@@ -1,10 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy.orm import Session
-from sqlalchemy import select
-
 import jwt
 from pydantic import ValidationError
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.exceptions import BadRequestException, UnauthorizedException
@@ -25,8 +24,12 @@ class AuthService:
         if not user.is_active:
             raise BadRequestException(detail="Inactive user")
 
-        access_token = create_access_token(subject=user.id, role=user.role.value, is_active=user.is_active)
-        refresh_token_str = create_refresh_token(subject=user.id, role=user.role.value, is_active=user.is_active)
+        access_token = create_access_token(
+            subject=user.id, role=user.role, is_active=user.is_active
+        )
+        refresh_token_str = create_refresh_token(
+            subject=user.id, role=user.role, is_active=user.is_active
+        )
 
         # Save to database
         db_token = RefreshToken(
@@ -36,7 +39,7 @@ class AuthService:
             + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
         db.add(db_token)
-        db.flush()
+        db.commit()
 
         return Token(
             access_token=access_token,
@@ -58,8 +61,8 @@ class AuthService:
             raise UnauthorizedException(detail="Invalid token")
 
         # Validate token against database
-        db_token = (
-            db.scalar(select(RefreshToken).where(RefreshToken.token == refresh_token))
+        db_token = db.scalar(
+            select(RefreshToken).where(RefreshToken.token == refresh_token)
         )
         if not db_token:
             raise UnauthorizedException(detail="Token not found")
@@ -81,8 +84,12 @@ class AuthService:
         db_token.is_revoked = True
 
         # Generate new tokens
-        access_token = create_access_token(subject=user.id, role=user.role.value, is_active=user.is_active)
-        new_refresh_token_str = create_refresh_token(subject=user.id, role=user.role.value, is_active=user.is_active)
+        access_token = create_access_token(
+            subject=user.id, role=user.role, is_active=user.is_active
+        )
+        new_refresh_token_str = create_refresh_token(
+            subject=user.id, role=user.role, is_active=user.is_active
+        )
 
         # Save new refresh token
         new_db_token = RefreshToken(
@@ -92,7 +99,7 @@ class AuthService:
             + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         )
         db.add(new_db_token)
-        db.flush()
+        db.commit()
 
         return Token(
             access_token=access_token,

@@ -1,18 +1,17 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import or_, select, delete
+from fastapi import BackgroundTasks
+from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
-    NotFoundException,
-    ForbiddenException,
     BadRequestException,
+    ForbiddenException,
+    NotFoundException,
 )
 from app.models.project import Project, ProjectMember, ProjectMemberRoleEnum
 from app.models.user import User
+from app.schemas.project import ProjectCreate, ProjectMemberCreate, ProjectUpdate
 from app.schemas.user import CurrentUser
-from fastapi import BackgroundTasks
-
-from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectMemberCreate
 from app.services.activity_log_service import ActivityLogService
 
 
@@ -33,7 +32,7 @@ class ProjectService:
             owner_id=current_user.id,
         )
         db.add(db_project)
-        db.flush()
+        db.commit()
         db.refresh(db_project)
 
         # Add owner as a member
@@ -43,7 +42,7 @@ class ProjectService:
             role=ProjectMemberRoleEnum.OWNER.value,
         )
         db.add(db_member)
-        db.flush()
+        db.commit()
 
         background_tasks.add_task(
             ActivityLogService.log_action,
@@ -98,7 +97,7 @@ class ProjectService:
         for field, value in update_data.items():
             setattr(project, field, value)
 
-        db.flush()
+        db.commit()
         db.refresh(project)
         background_tasks.add_task(
             ActivityLogService.log_action,
@@ -114,11 +113,16 @@ class ProjectService:
         project = ProjectService.get_project_by_id(db, project_id)
 
         if project.owner_id != current_user.id:
-            raise ForbiddenException(detail="Only the project owner can delete the project")
+            raise ForbiddenException(detail="Only the owner can delete this project")
 
+        from app.models.activity_log import ActivityLog
+        from app.models.task import Task
+        
+        db.execute(delete(ActivityLog).where(ActivityLog.project_id == project_id))
+        db.execute(delete(Task).where(Task.project_id == project_id))
         db.execute(delete(ProjectMember).where(ProjectMember.project_id == project_id))
         db.delete(project)
-        db.flush()
+        db.commit()
 
     @staticmethod
     def add_project_member(
@@ -141,7 +145,7 @@ class ProjectService:
         )
         db.add(db_member)
         try:
-            db.flush()
+            db.commit()
         except IntegrityError:
             db.rollback()
             raise BadRequestException(detail="User is already a member of this project")
@@ -176,7 +180,7 @@ class ProjectService:
             raise NotFoundException(detail="User is not a member of this project")
 
         db.delete(member)
-        db.flush()
+        db.commit()
 
         background_tasks.add_task(
             ActivityLogService.log_action,

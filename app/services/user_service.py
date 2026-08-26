@@ -32,7 +32,7 @@ class UserService:
             is_active=True,
         )
         db.add(db_user)
-        db.flush()
+        db.commit()
         db.refresh(db_user)
         return db_user
 

@@ -427,6 +427,9 @@ wheels = [
 name = "project"
 version = "0.1.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "sqlalchemy-utils" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -440,6 +443,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "sqlalchemy-utils", specifier = ">=0.42.1" }]
 
 [package.metadata.requires-dev]
 dev = [
