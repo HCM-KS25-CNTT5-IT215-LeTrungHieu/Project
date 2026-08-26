@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.project import ProjectMemberRoleEnum
 
@@ -26,7 +26,7 @@ class ProjectMemberResponse(ProjectMemberBase):
 
 
 class ProjectBase(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=100)
     description: str | None = None
 
 
@@ -35,8 +35,8 @@ class ProjectCreate(ProjectBase):
 
 
 class ProjectUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = Field(None, max_length=500)
 
 
 class ProjectResponse(ProjectBase):
